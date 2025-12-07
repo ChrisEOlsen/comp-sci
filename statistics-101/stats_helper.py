@@ -63,6 +63,38 @@ def plot_hist(data, bins=10):
     plt.ylabel("Frequency")
     plt.show()
 
+def plot_scatter(x, y, title="Scatter Plot"):
+    """
+    Plots a scatterplot of two variables and calculates Pearson's r.
+    x: List of independent variable data
+    y: List of dependent variable data
+    """
+    plt.clf() # Clear previous plots
+    
+    # 1. Plot the dots
+    plt.scatter(x, y, color="blue")
+    
+    # 2. Calculate Correlation (r)
+    # pearsonr returns (statistic, p-value)
+    r, p_val = stats.pearsonr(x, y)
+    
+    # 3. Add Line of Best Fit (Optional but helpful)
+    # Calculate simple linear regression (y = mx + b)
+    slope, intercept = np.polyfit(x, y, 1)
+    line_y = [slope * i + intercept for i in x]
+    plt.plot(x, line_y, color="red")
+    
+    # 4. Display
+    plt.title(f"{title} (r = {r:.4f})")
+    plt.xlabel("X Variable")
+    plt.ylabel("Y Variable")
+    plt.show()
+    
+    print(f"\n--- Correlation Analysis ---")
+    print(f"Pearson's r: {r:.4f}")
+    print(f"R-squared:   {r**2:.4f} (Coefficient of Determination)")
+    print(f"Equation:    y = {slope:.4f}x + {intercept:.4f}")
+
 def plot_binomial(n, p):
     """
     Plots the Probability Mass Function (PMF) of a Binomial Distribution.
@@ -168,3 +200,105 @@ def binom_prob(n, p, k):
     print(f"P(X <= {k}): {or_less:.4f}")
     print(f"P(X >= {k}): {or_more:.4f}")
     print("-" * 25)
+
+
+def standard_error(data, n_override=None):
+    """
+    Calculates SE and the Relative Standard Error (RSE).
+    """
+    s = np.std(data, ddof=1)
+    
+    if n_override:
+        n = n_override
+        print(f"Note: Using manual sample size n={n}")
+    else:
+        n = len(data)
+        
+    se = s / np.sqrt(n)
+    mean_val = np.mean(data)
+    
+    # Calculate Relative Error (percentage)
+    rse = (se / mean_val) * 100 if mean_val != 0 else 0
+    
+    print(f"\n--- Standard Error (SE) ---")
+    print(f"Sample Mean:        {mean_val:.4f}")
+    print(f"Standard Error:     {se:.4f}")
+    print(f"Relative SE (RSE):  {rse:.2f}%")
+    
+    if rse > 25:
+        print("⚠️  Warning: High RSE (>25%). Mean may be unreliable.")
+    elif rse < 5:
+        print("✅  Great: Low RSE (<5%). Mean is precise.")
+        
+    return se
+
+
+def standard_error_stats(std, n):
+    """
+    Calculates Standard Error when you only have summary statistics.
+    (No raw data provided).
+    """
+    se = std / np.sqrt(n)
+    
+    print(f"\n--- Standard Error (Summary Stats) ---")
+    print(f"Std Dev (σ):    {std}")
+    print(f"Sample Size (n): {n}")
+    print(f"Formula:        {std} / √{n}")
+    print(f"Standard Error:  {se:.4f}")
+    return se
+
+
+def correlation_details(x, y):
+    """
+    Calculates Pearson's r using the 'Summation Formula' method.
+    Prints the intermediate sums (Sigma values) required for manual homework.
+    """
+    # Convert to numpy arrays for easier math
+    arr_x = np.array(x)
+    arr_y = np.array(y)
+    n = len(arr_x)
+    
+    # 1. Calculate the 5 Essential Sums
+    sum_x = np.sum(arr_x)
+    sum_y = np.sum(arr_y)
+    sum_xy = np.sum(arr_x * arr_y)      # Sum of products
+    sum_x_sq = np.sum(arr_x ** 2)       # Sum of x squared
+    sum_y_sq = np.sum(arr_y ** 2)       # Sum of y squared
+    
+    # 2. Calculate Numerator and Denominator components
+    numerator = (n * sum_xy) - (sum_x * sum_y)
+    denom_x = (n * sum_x_sq) - (sum_x ** 2)
+    denom_y = (n * sum_y_sq) - (sum_y ** 2)
+    denominator = np.sqrt(denom_x * denom_y)
+    
+    # 3. Calculate r
+    if denominator == 0:
+        r = 0
+    else:
+        r = numerator / denominator
+        
+    print(f"\n--- Pearson Correlation (Step-by-Step) ---")
+    print(f"n:      {n}")
+    print(f"Σx:     {sum_x}")
+    print(f"Σy:     {sum_y}")
+    print(f"Σxy:    {sum_xy}")
+    print(f"Σx²:    {sum_x_sq}")
+    print(f"Σy²:    {sum_y_sq}")
+    print("-" * 30)
+    print(f"Numerator:   {numerator}")
+    print(f"Denominator: {denominator:.4f}")
+    print(f"r:           {r:.4f}")
+    
+    # Interpretation based on your lesson
+    if abs(r) > 0.8:
+        strength = "Strong"
+    elif abs(r) > 0.5:
+        strength = "Moderate"
+    else:
+        strength = "Weak"
+        
+    direction = "Positive" if r > 0 else "Negative"
+    print(f"Result:      {strength} {direction} Linear Correlation")
+    
+    return r
+
