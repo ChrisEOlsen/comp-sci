@@ -1,6 +1,7 @@
 import re
 import inspect
 import sys
+import pandas as pd
 import matplotlib.pyplot as pyplot
 import seaborn as sns
 import numpy as np
@@ -611,12 +612,27 @@ r_squared = r_manual ** 2
 
 print(f"Manual Correlation (r): {r_manual:.4f}")
 print(f"Manual R-squared (r^2): {r_squared:.4f}")
-
 def show_sse_calculation(x, y):
+    """
+    Prints a detailed 'Accounting Table' comparing the errors of the Mean vs. Regression.
+    
+    Purpose:
+    --------
+    Visualizes exactly how R-squared is calculated by showing the "grunt work."
+    It compares two models:
+    1. The Dumb Guess (Mean Line): Assumes X has no effect on Y.
+    2. The Smart Guess (Regression Line): Uses X to predict Y.
+    
+    Output:
+    -------
+    - A DataFrame showing the squared error for every single data point.
+    - The final calculation of SSE_mean, SSE_regression, and R^2.
+    """
     # 1. Create the Mean Line
     mean_y = np.mean(y)
     
     # 2. Create the Regression Line
+    # Reshape x because sklearn expects a 2D array [[x1], [x2]...]
     model = LinearRegression()
     model.fit(x.reshape(-1, 1), y)
     predicted_y = model.predict(x.reshape(-1, 1))
@@ -640,7 +656,3 @@ def show_sse_calculation(x, y):
     print(f"Total Variation (SSE Mean):     {sse_mean:.2f}")
     print(f"Unexplained Var (SSE Reg):      {sse_reg:.2f}")
     print(f"R-squared (1 - Reg/Mean):       {1 - (sse_reg/sse_mean):.4f}")
-
-# Test with simple data
-X = np.array([1, 2, 3])
-Y = np.array([2, 4, 5])
