@@ -444,3 +444,84 @@ def check_transformations(x=None, y=None, data_string=None):
 
     pyplot.tight_layout()
     pyplot.show()
+
+def output_transformations(x=None, y=None, data_string=None, model="linear"):
+    """
+    Applies a specific transformation to data and outputs it in (x, y) string format.
+    
+    Models:
+    - "log_x"   (Logarithmic: x' = log(x))
+    - "sqrt_y"  (Square Root: y' = √y)
+    - "recip_y" (Reciprocal:  y' = 1/y)
+    - "power"   (Power:       x' = log(x), y' = log(y))
+    - "log_y"   (Exponential: y' = log(y))
+    """
+    # 1. Input Parsing (Reuse logic)
+    if isinstance(x, str):
+        data_string = x
+        x = None
+    if data_string:
+        matches = re.findall(r'\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)', data_string)
+        if not matches:
+            print("❌ Error: No pairs found.")
+            return
+        x = [float(pair[0]) for pair in matches]
+        y = [float(pair[1]) for pair in matches]
+
+    arr_x = np.array(x)
+    arr_y = np.array(y)
+    
+    # 2. Apply Transformation
+    model = model.lower()
+    
+    # Defaults (Original Data)
+    new_x = arr_x
+    new_y = arr_y
+    name = "Linear (Original)"
+
+    try:
+        if "log_x" in model or "logarithmic" in model:
+            if np.min(arr_x) <= 0: raise ValueError("Cannot log non-positive X")
+            new_x = np.log10(arr_x)
+            name = "Logarithmic (X' = log X)"
+            
+        elif "sqrt_y" in model or "square root" in model:
+            if np.min(arr_y) < 0: raise ValueError("Cannot sqrt negative Y")
+            new_y = np.sqrt(arr_y)
+            name = "Square Root (Y' = √Y)"
+            
+        elif "recip_y" in model or "reciprocal" in model:
+            if 0 in arr_y: raise ValueError("Cannot divide by zero Y")
+            new_y = 1 / arr_y
+            name = "Reciprocal (Y' = 1/Y)"
+            
+        elif "power" in model:
+            if np.min(arr_x) <= 0 or np.min(arr_y) <= 0: raise ValueError("Cannot log non-positive values")
+            new_x = np.log10(arr_x)
+            new_y = np.log10(arr_y)
+            name = "Power (X' = log X, Y' = log Y)"
+            
+        elif "log_y" in model or "exponential" in model:
+            if np.min(arr_y) <= 0: raise ValueError("Cannot log non-positive Y")
+            new_y = np.log10(arr_y)
+            name = "Exponential (Y' = log Y)"
+
+    except ValueError as e:
+        print(f"❌ Transformation Error: {e}")
+        return
+
+    # 3. Format Output
+    # We round to 4 decimal places for homework consistency
+    pairs = []
+    for i in range(len(new_x)):
+        pairs.append(f"({new_x[i]:.4f}, {new_y[i]:.4f})")
+    
+    result_string = " ".join(pairs)
+    
+    print(f"\n--- Transformed Data: {name} ---")
+    print(result_string)
+    
+    # Copy to clipboard hint
+    print("-" * 30)
+    
+    return result_string
