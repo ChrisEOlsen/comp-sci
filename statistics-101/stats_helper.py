@@ -1,21 +1,44 @@
+import re
+import inspect
+import sys
+import matplotlib.pyplot as pyplot
+import seaborn as sns
 import numpy as np
-import plotext as plt
 from scipy import stats
 import math
 from fractions import Fraction
 
+# Set the visual theme for all plots
+sns.set_theme(style="darkgrid", palette="deep")
+
+def list_tools():
+    """
+    Prints a menu of all available functions in this toolkit.
+    """
+    current_module = sys.modules[__name__]
+    print(f"\n{'FUNCTION':<35} {'DESCRIPTION'}")
+    print("=" * 90)
+    
+    functions = inspect.getmembers(current_module, inspect.isfunction)
+    
+    for name, func in functions:
+        if func.__module__ == __name__:
+            doc = inspect.getdoc(func)
+            summary = doc.split('\n')[0] if doc else "No description available."
+            sig = str(inspect.signature(func))
+            print(f"{name + sig:<35} {summary}")
+            
+    print("=" * 90)
+
 def as_frac(numerator, denominator=None):
     """
     Converts a probability to a simplified fraction.
-    Usage 1: as_frac(4, 52)        -> Prints 1/13
-    Usage 2: as_frac(0.125)        -> Prints 1/8
+    Usage 1: as_frac(4, 52)         -> Prints 1/13
+    Usage 2: as_frac(0.125)         -> Prints 1/8
     """
     if denominator:
-        # If given two numbers (e.g., favorable, total)
         f = Fraction(int(numerator), int(denominator))
     else:
-        # If given a single float (e.g., 0.125)
-        # limit_denominator finds the closest nice fraction
         f = Fraction(numerator).limit_denominator()
         
     print(f"\nFraction: {f}")
@@ -37,82 +60,94 @@ def nPr(n, r):
 
 def plot_normal(mean=0, std=1):
     """
-    Plots a bell curve of the Normal Distribution in the terminal.
+    GUI: Plots a beautiful Normal Distribution curve with shading.
     """
-    plt.clf() # Clear previous plots
-    
-    # Generate X points for +/- 4 standard deviations
-    x = np.linspace(mean - 4*std, mean + 4*std, 200)
+    x = np.linspace(mean - 4*std, mean + 4*std, 500)
     y = stats.norm.pdf(x, mean, std)
     
-    plt.plot(x, y, color="green")
-    plt.title(f"Normal Distribution (Mean={mean}, Std={std})")
-    plt.xlabel("X Score")
-    plt.ylabel("Probability Density")
-    plt.show()
+    pyplot.figure(figsize=(10, 6))
+    
+    # Plot the line
+    sns.lineplot(x=x, y=y, color="teal", linewidth=2)
+    
+    # Shade the area under the curve
+    pyplot.fill_between(x, y, color="teal", alpha=0.3)
+    
+    pyplot.title(f"Normal Distribution (Mean={mean}, Std={std})", fontsize=14)
+    pyplot.xlabel("X Score")
+    pyplot.ylabel("Probability Density")
+    pyplot.tight_layout()
+    pyplot.show()
 
 def plot_hist(data, bins=10):
     """
-    Plots a histogram of your data to check distribution shape.
+    GUI: Plots a Histogram with a Kernel Density Estimate (Smooth Curve).
     """
-    plt.clf()
+    pyplot.figure(figsize=(10, 6))
     
-    plt.hist(data, bins, color="blue", fill=True)
-    plt.title(f"Data Distribution (n={len(data)})")
-    plt.xlabel("Value")
-    plt.ylabel("Frequency")
-    plt.show()
+    # kde=True adds the smooth line overlay
+    sns.histplot(data, bins=bins, kde=True, color="blue", element="step")
+    
+    # Mark Mean and Median
+    mean_val = np.mean(data)
+    median_val = np.median(data)
+    pyplot.axvline(mean_val, color='red', linestyle='--', label=f'Mean ({mean_val:.2f})')
+    pyplot.axvline(median_val, color='orange', linestyle='-', label=f'Median ({median_val:.2f})')
+    
+    pyplot.title(f"Data Distribution (n={len(data)})", fontsize=14)
+    pyplot.xlabel("Value")
+    pyplot.ylabel("Frequency")
+    pyplot.legend()
+    pyplot.tight_layout()
+    pyplot.show()
 
 def plot_scatter(x, y, title="Scatter Plot"):
     """
-    Plots a scatterplot of two variables and calculates Pearson's r.
-    x: List of independent variable data
-    y: List of dependent variable data
+    GUI: Plots a Scatter plot with Regression Line and Confidence Interval.
     """
-    plt.clf() # Clear previous plots
+    pyplot.figure(figsize=(10, 6))
     
-    # 1. Plot the dots
-    plt.scatter(x, y, color="blue")
+    # regplot adds the scatter, the line, and the shaded 95% confidence interval ribbon
+    sns.regplot(x=x, y=y, color="purple", marker="o", scatter_kws={'s': 80})
     
-    # 2. Calculate Correlation (r)
-    # pearsonr returns (statistic, p-value)
+    # Calculate stats for title
     r, p_val = stats.pearsonr(x, y)
     
-    # 3. Add Line of Best Fit (Optional but helpful)
-    # Calculate simple linear regression (y = mx + b)
+    pyplot.title(f"{title} (r = {r:.4f})", fontsize=14)
+    pyplot.xlabel("X Variable")
+    pyplot.ylabel("Y Variable")
+    pyplot.tight_layout()
+    pyplot.show()
+    
+    # Print stats to terminal as well
     slope, intercept = np.polyfit(x, y, 1)
-    line_y = [slope * i + intercept for i in x]
-    plt.plot(x, line_y, color="red")
-    
-    # 4. Display
-    plt.title(f"{title} (r = {r:.4f})")
-    plt.xlabel("X Variable")
-    plt.ylabel("Y Variable")
-    plt.show()
-    
     print(f"\n--- Correlation Analysis ---")
     print(f"Pearson's r: {r:.4f}")
-    print(f"R-squared:   {r**2:.4f} (Coefficient of Determination)")
+    print(f"R-squared:   {r**2:.4f}")
     print(f"Equation:    y = {slope:.4f}x + {intercept:.4f}")
 
 def plot_binomial(n, p):
     """
-    Plots the Probability Mass Function (PMF) of a Binomial Distribution.
+    GUI: Plots the Probability Mass Function (PMF) of a Binomial Distribution.
     """
-    plt.clf()
-    
-    # 1. Create the X-axis (0, 1, 2... up to n)
     x = list(range(n + 1))
-    
-    # 2. Calculate probabilities for each X
     y = [stats.binom.pmf(k, n, p) for k in x]
     
-    # 3. Plot
-    plt.bar(x, y, color="blue")
-    plt.title(f"Binomial Distribution (n={n}, p={p})")
-    plt.xlabel("Number of Successes")
-    plt.ylabel("Probability")
-    plt.show()
+    pyplot.figure(figsize=(10, 6))
+    
+    # Barplot is perfect for discrete distributions
+    sns.barplot(x=x, y=y, color="cornflowerblue", edgecolor="black")
+    
+    pyplot.title(f"Binomial Distribution (n={n}, p={p})", fontsize=14)
+    pyplot.xlabel("Number of Successes")
+    pyplot.ylabel("Probability")
+    
+    # If n is huge, sparse the x-ticks so they don't overlap
+    if n > 20:
+        pyplot.xticks(ticks=range(0, n+1, 5))
+        
+    pyplot.tight_layout()
+    pyplot.show()
 
 def describe(data):
     """
@@ -126,7 +161,6 @@ def describe(data):
     print(f"Mean:   {np.mean(arr):.4f}")
     print(f"Median: {np.median(arr):.4f}")
     
-    # Scipy Mode returns a mode object; we extract the value
     try:
         mode = stats.mode(arr, keepdims=True)[0][0]
         print(f"Mode:   {mode:.4f}")
@@ -134,7 +168,6 @@ def describe(data):
         print("Mode:   (No unique mode)")
     print(f"Range: {max(data) - min(data)}")
 
-    # Variance & Standard Deviation (Sample, not Population)
     print(f"Var (S²): {np.var(arr, ddof=1):.4f}")
     print(f"Std (S):  {np.std(arr, ddof=1):.4f}")
     print("-" * 25)
@@ -145,11 +178,7 @@ def normal_prob(x, mean=0, std=1):
     Calculates Z-score and probabilities for a Normal Distribution.
     """
     z_score = (x - mean) / std
-    
-    # CDF = Area to the LEFT (Percentile)
     prob_less = stats.norm.cdf(x, loc=mean, scale=std)
-    
-    # SF = Survival Function (Area to the RIGHT)
     prob_more = stats.norm.sf(x, loc=mean, scale=std)
     
     print(f"\n--- Normal Dist (Mean={mean}, Std={std}) ---")
@@ -161,8 +190,7 @@ def normal_prob(x, mean=0, std=1):
 
 def normal_between(lower, upper, mean=0, std=1):
     """
-    Calculates the probability of being between two values (Area Between).
-    Formula: CDF(upper) - CDF(lower)
+    Calculates the probability of being between two values.
     """
     prob_upper = stats.norm.cdf(upper, loc=mean, scale=std)
     prob_lower = stats.norm.cdf(lower, loc=mean, scale=std)
@@ -177,9 +205,7 @@ def normal_between(lower, upper, mean=0, std=1):
 def normal_cutoff(percentile, mean=0, std=1):
     """
     Inverse Normal. Finds the X score for a given percentile.
-    Example: 0.95 finds the score separating the bottom 95% from top 5%.
     """
-    # PPF = Percent Point Function (Inverse of CDF)
     cutoff = stats.norm.ppf(percentile, loc=mean, scale=std)
     print(f"\n--- Inverse Normal (Mean={mean}, Std={std}) ---")
     print(f"Percentile: {percentile}")
@@ -188,11 +214,9 @@ def normal_cutoff(percentile, mean=0, std=1):
 def binom_prob(n, p, k):
     """
     Binomial Distribution helper.
-    n = trials, p = probability of success, k = number of successes
     """
     exact = stats.binom.pmf(k, n, p)
     or_less = stats.binom.cdf(k, n, p)
-    # Probability of k or more is (1 - cdf(k-1))
     or_more = stats.binom.sf(k-1, n, p) 
     
     print(f"\n--- Binomial (n={n}, p={p}) ---")
@@ -200,7 +224,6 @@ def binom_prob(n, p, k):
     print(f"P(X <= {k}): {or_less:.4f}")
     print(f"P(X >= {k}): {or_more:.4f}")
     print("-" * 25)
-
 
 def standard_error(data, n_override=None):
     """
@@ -217,7 +240,6 @@ def standard_error(data, n_override=None):
     se = s / np.sqrt(n)
     mean_val = np.mean(data)
     
-    # Calculate Relative Error (percentage)
     rse = (se / mean_val) * 100 if mean_val != 0 else 0
     
     print(f"\n--- Standard Error (SE) ---")
@@ -232,14 +254,11 @@ def standard_error(data, n_override=None):
         
     return se
 
-
 def standard_error_stats(std, n):
     """
     Calculates Standard Error when you only have summary statistics.
-    (No raw data provided).
     """
     se = std / np.sqrt(n)
-    
     print(f"\n--- Standard Error (Summary Stats) ---")
     print(f"Std Dev (σ):    {std}")
     print(f"Sample Size (n): {n}")
@@ -247,31 +266,38 @@ def standard_error_stats(std, n):
     print(f"Standard Error:  {se:.4f}")
     return se
 
-
-def correlation_details(x, y):
+def correlation_details(x=None, y=None, data_string=None):
     """
     Calculates Pearson's r using the 'Summation Formula' method.
-    Prints the intermediate sums (Sigma values) required for manual homework.
+    Accepts two lists OR a raw string of pairs.
     """
-    # Convert to numpy arrays for easier math
+    if isinstance(x, str):
+        data_string = x
+        x = None
+    if data_string:
+        matches = re.findall(r'\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)', data_string)
+        if not matches:
+            print("❌ Error: No valid (x, y) pairs found in string.")
+            return 0
+        x = [float(pair[0]) for pair in matches]
+        y = [float(pair[1]) for pair in matches]
+        print(f"✅ Parsed {len(x)} pairs from string.")
+
     arr_x = np.array(x)
     arr_y = np.array(y)
     n = len(arr_x)
     
-    # 1. Calculate the 5 Essential Sums
     sum_x = np.sum(arr_x)
     sum_y = np.sum(arr_y)
-    sum_xy = np.sum(arr_x * arr_y)      # Sum of products
-    sum_x_sq = np.sum(arr_x ** 2)       # Sum of x squared
-    sum_y_sq = np.sum(arr_y ** 2)       # Sum of y squared
+    sum_xy = np.sum(arr_x * arr_y)
+    sum_x_sq = np.sum(arr_x ** 2)
+    sum_y_sq = np.sum(arr_y ** 2)
     
-    # 2. Calculate Numerator and Denominator components
     numerator = (n * sum_xy) - (sum_x * sum_y)
     denom_x = (n * sum_x_sq) - (sum_x ** 2)
     denom_y = (n * sum_y_sq) - (sum_y ** 2)
     denominator = np.sqrt(denom_x * denom_y)
     
-    # 3. Calculate r
     if denominator == 0:
         r = 0
     else:
@@ -289,16 +315,132 @@ def correlation_details(x, y):
     print(f"Denominator: {denominator:.4f}")
     print(f"r:           {r:.4f}")
     
-    # Interpretation based on your lesson
     if abs(r) > 0.8:
         strength = "Strong"
     elif abs(r) > 0.5:
         strength = "Moderate"
     else:
         strength = "Weak"
-        
     direction = "Positive" if r > 0 else "Negative"
     print(f"Result:      {strength} {direction} Linear Correlation")
     
     return r
 
+def regression_details(x=None, y=None, data_string=None):
+    """
+    Calculates Slope (m) and Intercept (b) for Linear Regression.
+    """
+    if isinstance(x, str):
+        data_string = x
+        x = None
+    if data_string:
+        matches = re.findall(r'\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)', data_string)
+        if not matches:
+            print("❌ Error: No valid (x, y) pairs found in string.")
+            return None, None
+        x = [float(pair[0]) for pair in matches]
+        y = [float(pair[1]) for pair in matches]
+        print(f"✅ Parsed {len(x)} pairs from string.")
+
+    arr_x = np.array(x)
+    arr_y = np.array(y)
+    n = len(arr_x)
+    
+    sum_x = np.sum(arr_x)
+    sum_y = np.sum(arr_y)
+    sum_xy = np.sum(arr_x * arr_y)
+    sum_x_sq = np.sum(arr_x ** 2)
+    
+    numerator = (n * sum_xy) - (sum_x * sum_y)
+    denominator = (n * sum_x_sq) - (sum_x ** 2)
+    
+    if denominator == 0:
+        print("❌ Error: Vertical line (undefined slope)")
+        return None, None
+
+    m = numerator / denominator
+    b = (sum_y - (m * sum_x)) / n
+    
+    print(f"\n--- Linear Regression (Least Squares) ---")
+    print(f"n:              {n}")
+    print(f"Slope (m):      {m:.4f}")
+    print(f"Intercept (b):  {b:.4f}")
+    print("-" * 30)
+    print(f"Equation:       y = {m:.4f}x + {b:.4f}")
+    print(f"\nTo predict a value, use: {m:.4f} * (your_x) + {b:.4f}")
+    return m, b
+
+def check_transformations(x=None, y=None, data_string=None):
+    """
+    GUI: Applies Power, Log, Square Root, and Reciprocal models.
+    Identifies best fit and plots side-by-side comparison with regression lines.
+    """
+    if isinstance(x, str):
+        data_string = x
+        x = None
+    if data_string:
+        matches = re.findall(r'\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)', data_string)
+        if not matches:
+            print("❌ Error: No pairs found.")
+            return
+        x = [float(pair[0]) for pair in matches]
+        y = [float(pair[1]) for pair in matches]
+
+    arr_x = np.array(x)
+    arr_y = np.array(y)
+    results = []
+    
+    # --- MODEL 1: Linear (Original) ---
+    r, _ = stats.pearsonr(arr_x, arr_y)
+    results.append({"name": "Linear (Original)", "r": r, "x": arr_x, "y": arr_y})
+    
+    # --- MODEL 2: Log X ---
+    if np.min(arr_x) > 0: 
+        log_x = np.log10(arr_x)
+        r, _ = stats.pearsonr(log_x, arr_y)
+        results.append({"name": "Logarithmic (Log X)", "r": r, "x": log_x, "y": arr_y})
+    
+    # --- MODEL 3: Log X, Log Y (Power) ---
+    if np.min(arr_x) > 0 and np.min(arr_y) > 0:
+        log_x = np.log10(arr_x)
+        log_y = np.log10(arr_y)
+        r, _ = stats.pearsonr(log_x, log_y)
+        results.append({"name": "Power (Log X, Log Y)", "r": r, "x": log_x, "y": log_y})
+
+    # --- MODEL 4: Sqrt Y ---
+    if np.min(arr_y) >= 0:
+        sqrt_y = np.sqrt(arr_y)
+        r, _ = stats.pearsonr(arr_x, sqrt_y)
+        results.append({"name": "Square Root (Sqrt Y)", "r": r, "x": arr_x, "y": sqrt_y})
+
+    # --- MODEL 5: Reciprocal Y ---
+    if 0 not in arr_y:
+        recip_y = 1 / arr_y
+        r, _ = stats.pearsonr(arr_x, recip_y)
+        results.append({"name": "Reciprocal (1/Y)", "r": r, "x": arr_x, "y": recip_y})
+
+    results.sort(key=lambda k: abs(k['r']), reverse=True)
+    best = results[0]
+    original = next(item for item in results if item["name"] == "Linear (Original)")
+    
+    print(f"\n{'MODEL':<25} | {'r (CORRELATION)':<15} | {'R-SQUARED':<10}")
+    print("-" * 60)
+    for res in results:
+        print(f"{res['name']:<25} | {res['r']:.4f}          | {res['r']**2:.4f}")
+
+    print(f"\n✅ Best Fit: {best['name']}")
+    
+    # --- GUI PLOT ---
+    # Create two side-by-side plots
+    fig, axes = pyplot.subplots(1, 2, figsize=(14, 6))
+
+    # Plot 1: Original Data
+    sns.regplot(x=original['x'], y=original['y'], ax=axes[0], color="red", scatter_kws={'s': 60})
+    axes[0].set_title(f"Original Data (r={original['r']:.4f})")
+    
+    # Plot 2: Transformed Data
+    sns.regplot(x=best['x'], y=best['y'], ax=axes[1], color="green", scatter_kws={'s': 60})
+    axes[1].set_title(f"Transformed: {best['name']} (r={best['r']:.4f})")
+
+    pyplot.tight_layout()
+    pyplot.show()
