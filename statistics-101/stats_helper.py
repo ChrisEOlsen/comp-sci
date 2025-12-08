@@ -7,6 +7,7 @@ import numpy as np
 from scipy import stats
 import math
 from fractions import Fraction
+from sklearn.linear_model import LinearRegression
 
 # Set the visual theme for all plots
 sns.set_theme(style="darkgrid", palette="deep")
@@ -525,3 +526,121 @@ def output_transformations(x=None, y=None, data_string=None, model="linear"):
     print("-" * 30)
     
     return result_string
+
+def calculate_r_squared(y_actual, y_predicted):
+    """
+    Calculates the R-squared (coefficient of determination) score manually.
+    
+    This function measures how well the regression line approximates the real data points.
+    It compares the errors of our model against the errors of a simple baseline (the mean).
+
+    Formula: R^2 = 1 - (Unexplained Variation / Total Variation)
+
+    Parameters:
+    -----------
+    y_actual : array-like
+        The true observed values (ground truth).
+    y_predicted : array-like
+        The values predicted by the linear regression model.
+
+    Returns:
+    --------
+    float
+        The R^2 score (typically between 0 and 1).
+    """
+    
+    # 1. Calculate the mean of the actual data
+    # This represents the baseline model (a horizontal line at the average).
+    y_mean = np.mean(y_actual)
+    
+    # 2. Calculate Total Sum of Squares (TSS)
+    # This captures the total variance inherent in the data.
+    # Mathematically: sum((y - y_mean)^2)
+    total_variance = np.sum((y_actual - y_mean) ** 2)
+    
+    # 3. Calculate Residual Sum of Squares (RSS)
+    # This captures the variance the model failed to explain (the error).
+    # Mathematically: sum((y - y_pred)^2)
+    unexplained_variance = np.sum((y_actual - y_predicted) ** 2)
+    
+    # 4. Calculate R-squared
+    # If unexplained_variance is 0, R^2 is 1 (Perfect fit).
+    # If unexplained_variance equals total_variance, R^2 is 0 (Model is no better than the mean).
+    r_squared = 1 - (unexplained_variance / total_variance)
+    
+    return r_squared
+
+
+def calculate_pearson_r(x, y):
+    """
+    Calculates Pearson's Correlation Coefficient (r) manually
+    using the 'Raw Score' algebraic formula.
+    """
+    n = len(x)
+    
+    # 1. Calculate the sums needed for the formula
+    sum_x = np.sum(x)
+    sum_y = np.sum(y)
+    sum_xy = np.sum(x * y)
+    sum_x_sq = np.sum(x ** 2)
+    sum_y_sq = np.sum(y ** 2)
+    
+    # 2. Calculate the Numerator (Top part)
+    # "How much do X and Y move together?"
+    numerator = (n * sum_xy) - (sum_x * sum_y)
+    
+    # 3. Calculate the Denominator (Bottom part)
+    # "How much do X and Y move individually?"
+    term_x = (n * sum_x_sq) - (sum_x ** 2)
+    term_y = (n * sum_y_sq) - (sum_y ** 2)
+    denominator = np.sqrt(term_x * term_y)
+    
+    # 4. Divide
+    r = numerator / denominator
+    return r
+
+# --- Verification ---
+X = np.array([1, 2, 3, 4, 5]) 
+Y = np.array([50, 55, 65, 70, 72])
+
+# Calculate r manually
+r_manual = calculate_pearson_r(X, Y)
+
+# Calculate R^2 manually (Method 1)
+r_squared = r_manual ** 2
+
+print(f"Manual Correlation (r): {r_manual:.4f}")
+print(f"Manual R-squared (r^2): {r_squared:.4f}")
+
+def show_sse_calculation(x, y):
+    # 1. Create the Mean Line
+    mean_y = np.mean(y)
+    
+    # 2. Create the Regression Line
+    model = LinearRegression()
+    model.fit(x.reshape(-1, 1), y)
+    predicted_y = model.predict(x.reshape(-1, 1))
+    
+    # 3. Create a Dataframe to show the "Grunt Work"
+    df = pd.DataFrame({
+        'X': x,
+        'Actual_Y': y,
+        'Mean_Y': mean_y,
+        'Mean_Error_Sq': (y - mean_y)**2,
+        'Predicted_Y': predicted_y,
+        'Reg_Error_Sq': (y - predicted_y)**2
+    })
+    
+    print("--- The Calculation Table ---")
+    print(df.round(2))
+    
+    print("\n--- The Totals ---")
+    sse_mean = df['Mean_Error_Sq'].sum()
+    sse_reg = df['Reg_Error_Sq'].sum()
+    print(f"Total Variation (SSE Mean):     {sse_mean:.2f}")
+    print(f"Unexplained Var (SSE Reg):      {sse_reg:.2f}")
+    print(f"R-squared (1 - Reg/Mean):       {1 - (sse_reg/sse_mean):.4f}")
+
+# Test with simple data
+X = np.array([1, 2, 3])
+Y = np.array([2, 4, 5])

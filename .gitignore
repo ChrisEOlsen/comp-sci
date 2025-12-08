@@ -1,4 +1,15 @@
+# Python / System
 __pycache__
+*.pyc
+
+# Environments
 venv
 .venv
 .env
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Data Files (Optional: Prevents committing raw data)
+*.csv
+*.xlsx
